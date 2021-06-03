@@ -19,7 +19,7 @@
 * \# Events: 1000
 ### Result
 The clusters are the same for the 1000 events.
-![Output](compareDifference.png)
+![Output](img/compareDifference.png)
 
 ## Log
 * Fix the error in original python code: change *-2* to *+2*.
