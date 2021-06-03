@@ -261,6 +261,7 @@ int main ()
     string d_int = ",";
     string d_tuple = ";";
 
+    printf("Begin Checking...\n");
     for (int i = 0; i < 1000; i++) {
         loadTest(i);
     }
