@@ -9,7 +9,8 @@
 | Get Cluster | O(\|E\|) | O(n) | False |
 | Get Clustered Nodes | O(n) | O(m) | False |
 | Get Sorted Clustered Nodes | O(m) | O(m) | False |
-| **feature scale** |  |  |  |
+| Get Edge Pairs | O(m^2) | O(m^2) | True with larger memory requirement |
+| FeatureScale** | O(m) | O(m) | True |
 
 ### Note
 1. n: \# nodes; m: \# clustered nodes
