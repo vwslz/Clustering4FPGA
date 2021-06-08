@@ -10,7 +10,7 @@
 | Get Clustered Nodes | O(n) | O(m) | False |
 | Get Sorted Clustered Nodes | O(m) | O(m) | False |
 | Get Edge Pairs | O(m^2) | O(m^2) | True with larger memory requirement |
-| FeatureScale | O(m) | O(m) | True |
+| Get Scaled Feature | O(m) | O(m) | True |
 
 ### Note
 1. n: \# nodes; m: \# clustered nodes
@@ -29,7 +29,7 @@
 1. The clusters are the same for the 1000 events.
 ![Output](img/compareDifference.png)
 
-2. The number of edges varies for different events. Note that the difference is small (usualy +- 1/2 edges) which indicates the high similarity between the two generated edge sets.
+2. The number of edges varies for different events. Note that the difference is small (within +- 3 edges) which indicates the high similarity between the two generated edge sets.
 
 *Example: Event 14*
 
