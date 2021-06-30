@@ -13,7 +13,7 @@
 
 ### Note
 1. n: \# nodes; m: \# clustered nodes
-2. Time complexity of *get queue* is O(1) to check whether all nodes are neighbours or not, and then sequencially add valid nodes to queue. Inspired by [Synthesize High Speed Leading Zero Count for FPGA](https://electronics.stackexchange.com/questions/196914/verilog-synthesize-high-speed-leading-zero-count), we can find the first valid node in queue in O(1). Hence, the total time is O(1) \* # neighbour nodes = O(# neighbour nodes).
+2. *get queue* is to check whether all nodes are neighbours or not, and then sequencially add valid nodes to queue. Inspired by [Synthesize High Speed Leading Zero Count ](https://electronics.stackexchange.com/questions/196914/verilog-synthesize-high-speed-leading-zero-count), we can find the first valid node in queue in O(1). Hence, the total time is O(1) \* # neighbour nodes = O(# neighbour nodes). It will be implemented in FPGA and get parallelized.
 3. For *get cluster*, it used the node with smallest id in a cluster as the root and use BFS to find the whole cluster sequencially. The time it takes is sum of O(# neighbour nodes) for all nodes, which is O(|E|). Although O(|E|) has the worst case of O(n^2),  the complexity is much smaller since the graph is sparse.
 5. The *x*, *y*, *z* of a clustered node is the average of all nodes in this cluster.
 6. Creteria of selecting edge pair is to have *phi slope* < 0.100 and *z0* < 200.
