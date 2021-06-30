@@ -59,40 +59,26 @@ void resetNodeIndex(struct Node* nodes, int n) {
       nodes[i].id = i;
   }
 }
-void getAdjancyMatrix(int adjMatrix[MAX][MAX], struct Node input[MAX], int n) {
-    for (int i = 0; i < n; i++) {
-        struct Node node_iter_i;
-        copyNode(&node_iter_i, input[i]);
-        struct Node node_iter_j;
-        for (int j = 0; j < n; j++) {
-            if (i == j)
-                continue;
-            copyNode(&node_iter_j, input[j]);
-            if (node_iter_i.layer_id == node_iter_j.layer_id
-                && abs(node_iter_i.phi_index_phi - node_iter_j.phi_index_phi) <= 2
-                && abs(node_iter_i.z_index_r - node_iter_j.z_index_r) <= 2) {
-                adjMatrix[i][j] = 1;
-            }
-        }
-    }
-}
-void getAdjancyList(int adjMatrix[MAX][MAX], struct Node input[MAX], int n) {
-    int adjListIndex;
-    for (int i = 0; i < n; i++) {
-        adjListIndex = 0;
-        for (int j = 0; j < n; j++) {
-            if (adjMatrix[i][j] == 1)
-                adjMatrix[i][adjListIndex++] = j;
-        }
-        for (int j = adjListIndex; j < n; j++) {
-             adjMatrix[i][j] = -1;
-        }
-    }
-}
 
-int appendNeighbour(struct Node output[MAX], struct Node input[MAX], int adjList[MAX][MAX], int marked[MAX], int i_node, int i_next, int num_hits) {
+void getNeighbours(struct Node* output, struct Node* input, int* queue, int* marked, int i_node, int num_hits) {
+    int i_queue = 0;
+    for (int i = 0; i < num_hits; i++) {
+        if (i != i_node
+            && input[i_node].layer_id == input[i].layer_id
+            && abs(input[i_node].phi_index_phi - input[i].phi_index_phi) <= 2
+            && abs(input[i_node].z_index_r - input[i].z_index_r) <= 2) {
+            queue[i_queue++] = i;
+        }
+    }
+    for (int i = i_queue; i < num_hits; i++) {
+        queue[i] = -1;
+    }
+}
+    
+
+int appendNeighbour(struct Node* output, struct Node* input, int* queue, int* marked, int i_node, int i_next, int num_hits) {
     for (int i = 0; i < num_hits ; i++) {
-        int idx = adjList[i_node][i];
+        int idx = queue[i];
         if (idx == -1)
             break;
         if (marked[idx] == -1) {
@@ -102,7 +88,8 @@ int appendNeighbour(struct Node output[MAX], struct Node input[MAX], int adjList
     }
     return i_next;
 }
-void getCluster(struct Node output[MAX], int root_index[MAX], struct Node input[MAX], int adjList[MAX][MAX], int marked[MAX], int num_hits) {
+
+void getCluster(struct Node output[MAX], int root_index[MAX], struct Node input[MAX], int queue[MAX], int marked[MAX], int num_hits) {
     int ptr_cluster = 0;
     int ptr_cluster_queue = 0;
     int ptr_next = 0;
@@ -112,17 +99,19 @@ void getCluster(struct Node output[MAX], int root_index[MAX], struct Node input[
             marked[ptr_cluster] = ptr_cluster;
             root_index[ptr_root++] = ptr_next;
             copyNode(&(output[ptr_next++]), input[ptr_cluster]);
-            ptr_next = appendNeighbour(output, input, adjList, marked, ptr_cluster, ptr_next, num_hits);
+            getNeighbours(output, input, queue, marked, ptr_cluster, num_hits);
+            ptr_next = appendNeighbour(output, input, queue, marked, ptr_cluster, ptr_next, num_hits);
             ptr_cluster_queue = ptr_cluster + 1;
             while (ptr_cluster_queue < num_hits && output[ptr_cluster_queue].id != -1) {
-                ptr_next = appendNeighbour(output, input, adjList, marked, output[ptr_cluster_queue].id, ptr_next, num_hits);
+                getNeighbours(output, input, queue, marked, output[ptr_cluster_queue].id, num_hits);
+                ptr_next = appendNeighbour(output, input, queue, marked, output[ptr_cluster_queue].id, ptr_next, num_hits);
                 ptr_cluster_queue++;
             }
         }
         ptr_cluster++;
     }
 }
-void initialize(double keys[MAX][6], struct Node input[MAX], struct Node output[MAX], int adj[MAX][MAX], int marked[MAX], int rootIndex[MAX], int* layer_cnt, int* layer_begin_idx, int** edge_pair, int num_layers) {
+void initialize(double keys[MAX][6], struct Node input[MAX], struct Node output[MAX], int queue[MAX], int marked[MAX], int rootIndex[MAX], int* layer_cnt, int* layer_begin_idx, int** edge_pair, int num_layers) {
     
     for (int i = 0; i < MAX; i++) {
         input[i].id = i;
@@ -143,9 +132,7 @@ void initialize(double keys[MAX][6], struct Node input[MAX], struct Node output[
         output[i].n_nodes = 0;
         marked[i] = -1;
         rootIndex[i] = -1;
-        for (int j = 0; j < MAX; j++) {
-            adj[i][j] = 0;
-        }
+        queue[i] = -1;
     }
     
     for (int i = 0; i < 1000; i++) {
@@ -306,7 +293,7 @@ int main() {
     
     struct Node input[MAX];
     struct Node output[MAX];
-    int adj[MAX][MAX];
+    int queue[MAX];
     int marked[MAX];
     int rootIndex[MAX];
     int num_layers = 3;
@@ -315,11 +302,9 @@ int main() {
     // (2, 1000)
     int** edge_pair = new int*[1000];
     
-    initialize(keys, input, output, adj, marked, rootIndex, layer_cnt, layer_begin_idx, edge_pair, num_layers);
+    initialize(keys, input, output, queue, marked, rootIndex, layer_cnt, layer_begin_idx, edge_pair, num_layers);
     
-    getAdjancyMatrix(adj, input, MAX);
-    getAdjancyList(adj, input, MAX);
-    getCluster(output, rootIndex, input, adj, marked, MAX);
+    getCluster(output, rootIndex, input, queue, marked, MAX);
     
     int expected[MAX] = {0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 10, 10, 10, 10, 14, 14, 14, 14, 14, 19, 19, 19, 19, 19, 19, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 35, 35, 35, 35, 39, 39, 39, 39, 39, 39, 45, 45, 45, 45, 45, 45, 51, 51, 51, 51, 51, 51, 57, 57, 57, 57, 57, 57, 63, 63, 63, 63, 63, 63, 63, 63, 71, 71, 71, 71, 71, 71, 77, 77, 77, 77, 77, 77, 83, 83, 83, 83, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 100, 100, 100, 100, 100, 100, 100, 100, 108, 108, 108, 108, 108, 108, 114, 114, 114, 114, 114, 114, 114, 121, 121, 121, 121, 121, 121, 121, 121, 129, 129, 129, 129, 133, 133, 133, 133, 133, 133, 139, 139, 139, 139, 143, 143, 143, 143, 143, 143, 143, 150, 150, 150, 150, 150, 150, 150, 150, 150, 159, 159, 159, 159, 159, 159, 159, 166, 166, 166, 166, 170, 170, 170, 170, 170, 170, 170, 177, 177, 177, 177, 177, 177, 177, 184, 184, 184, 184, 188, 188, 188, 188, 188, 188, 194, 194, 194, 194, 194, 194, 194, 194, 194, 203, 203, 203, 203, 203, 203, 209, 209, 209, 209, 209, 209, 215, 215, 215, 215, 215, 215, 215, 222, 222, 222, 222, 222, 222, 222, 222, 230, 230, 230, 230, 234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 244, 244, 244, 244, 244, 244, 244, 251, 251, 251, 251, 251, 251, 251, 251, 251, 260, 260, 260, 260, 260, 260, 260, 260, 268, 268, 268, 268, 268, 268, 274, 274, 274, 274, 274, 274, 274, 274, 274, 283, 283, 283, 283, 287, 287, 287, 287, 287, 287, 293, 293, 293, 293, 293, 293, 299, 299, 299, 299, 299, 299, 299, 299, 293, 293, 293, 293, 293, 293, 293, 293, 315, 315, 315, 315, 319, 319, 319, 319, 319, 319, 325, 325, 325, 325, 329, 329, 329, 329, 333, 333, 333, 333, 333, 333, 333, 340, 340, 340, 340, 340, 340, 340, 340, 348, 348, 348, 348, 348, 348, 348, 348, 348, 348, 348, 359, 359, 359, 359, 359, 359, 365, 365, 365, 365, 365, 365, 371, 371, 371, 371, 371, 371, 377, 377, 377, 377, 377, 377, 377, 377, 385, 385, 385, 385, 389, 389, 389, 389, 389, 389, 395, 395, 395, 395, 395, 395};
     
