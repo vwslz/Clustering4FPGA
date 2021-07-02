@@ -15,7 +15,7 @@ Parallelism for get clusters via partitioned of layers
 | Get Clustered Nodes | O(n) | O(m) | False |
 | Get Sorted Clustered Nodes | O(m) | O(m) | False |
 | Get Edge Pairs | O(1) | O(m^2) | True |
-| Get Scaled Feature | O(m) | O(m) | True |
+| Get Scaled Feature | O(1) | O(m) | True |
 
 ### Note
 1. n: \# nodes; m: \# clustered nodes; l: \# layers (currently 3)
