@@ -35,6 +35,14 @@ void printIntArray(int* input, int n) {
 }
 void printNodeArray(struct Node* input, int n) {
     for(int i = 0; i < n;i++) {
+        // printf("\n%d:", i);
+        printNode(input[i]);
+    }
+}
+
+void printRangedNodeArray(struct Node* input, int i_begin, int i_end) {
+    for(int i = i_begin; i < i_end;i++) {
+        // printf("\n%d:", i);
         printNode(input[i]);
     }
 }
@@ -89,9 +97,9 @@ void resetNodeIndex(struct Node* nodes, int n) {
   }
 }
 
-void getNeighbours(struct Node* output, struct Node* input, int* queue, int* marked, int i_node, int num_hits) {
-    int i_queue = 0;
-    for (int i = 0; i < num_hits; i++) {
+void getNeighbours(struct Node* input, int* queue, int* marked, int i_node, int i_begin, int i_end) {
+    int i_queue = i_begin;
+    for (int i = i_begin; i < i_end; i++) {
         if (i != i_node
             // && marked[i] == -1
             && input[i_node].layer_id == input[i].layer_id
@@ -100,21 +108,17 @@ void getNeighbours(struct Node* output, struct Node* input, int* queue, int* mar
             queue[i_queue++] = i;
         }
     }
-    for (int i = i_queue; i < num_hits; i++) {
+    for (int i = i_queue; i < i_end; i++) {
         queue[i] = -1;
     }
 }
-    
 
-int appendNeighbour(struct Node* output, struct Node* input, int* queue, int* marked, int i_node, int i_next, int num_hits) {
-    for (int i = 0; i < num_hits ; i++) {
+int appendNeighbour(struct Node* output, struct Node* input, int* queue, int* marked, int i_node, int i_next, int i_begin, int i_end) {
+    for (int i = i_begin; i < i_end ; i++) {
         int idx = queue[i];
         if (idx == -1)
             break;
-        if (input[i_node].layer_id == input[idx].layer_id
-                && abs(input[i_node].phi_index_phi - input[idx].phi_index_phi) <= 2
-                && abs(input[i_node].z_index_r - input[idx].z_index_r) <= 2
-            && marked[idx] == -1) {
+        if (marked[idx] == -1) {
             marked[idx] = marked[i_node];
             // printf("\n - Add neighbour %d at %d", idx, i_next);
             copyNode(&(output[i_next++]), input[idx]);
@@ -123,36 +127,50 @@ int appendNeighbour(struct Node* output, struct Node* input, int* queue, int* ma
     return i_next;
 }
 
-void getCluster(struct Node* output, int* root_index, struct Node* input, int* queue, int* marked, int num_hits) {
-    int ptr_cluster = 0;
-    int ptr_cluster_queue = 0;
-    int ptr_next = 0;
-    int ptr_root = 0;
-    while (ptr_cluster < num_hits) {
+void getCluster(struct Node* output, int* root_index, struct Node* input, int* queue, int* marked, int i_begin, int i_end) {
+    int ptr_cluster = i_begin;
+    int ptr_cluster_queue = i_begin;
+    int ptr_next = i_begin;
+    int ptr_root = i_begin;
+    while (ptr_cluster < i_end) {
         // printf("\n Loop at %d", ptr_cluster);
         if (marked[ptr_cluster] == -1) {
             // printf("\n - Node %d is cluster parent", ptr_cluster);
             marked[ptr_cluster] = ptr_cluster;
             root_index[ptr_root++] = ptr_next;
             copyNode(&(output[ptr_next++]), input[ptr_cluster]);
-            getNeighbours(output, input, queue, marked, ptr_cluster, num_hits);
+            getNeighbours(input, queue, marked, ptr_cluster, 0, i_end);
             // printIntArray(queue, num_hits);
-            ptr_next = appendNeighbour(output, input, queue, marked, ptr_cluster, ptr_next, num_hits);
+            ptr_next = appendNeighbour(output, input, queue, marked, ptr_cluster, ptr_next, 0, i_end);
             // printf("\n");
             // printIntArray(marked, num_hits);
             ptr_cluster_queue = ptr_cluster + 1;
             // printf("\n - %d", ptr_cluster_queue);
-            while (ptr_cluster_queue < num_hits && output[ptr_cluster_queue].id != -1) {
+            while (ptr_cluster_queue < i_end && output[ptr_cluster_queue].id != -1) {
                 // printf("\n - Iteraste on Node %d", output[ptr_cluster_queue].id);
-                getNeighbours(output, input, queue, marked, output[ptr_cluster_queue].id, num_hits);
+                getNeighbours(input, queue, marked, output[ptr_cluster_queue].id, 0, i_end);
                 // printIntArray(queue, num_hits);
-                ptr_next = appendNeighbour(output, input, queue, marked, output[ptr_cluster_queue].id, ptr_next, num_hits);
+                ptr_next = appendNeighbour(output, input, queue, marked, output[ptr_cluster_queue].id, ptr_next, 0, i_end);
                 ptr_cluster_queue++;
                 // printf("\n");
                 // printIntArray(marked, num_hits);
             }
         }
         ptr_cluster++;
+    }
+}
+
+void mergeClusters(struct Node* input, int* root_index, int n) {
+    int ptr_insert = 0;
+    
+    for (int i = 0; i < n; i++) {
+        if (root_index[i] != -1) {
+            if (i != ptr_insert) {
+                root_index[ptr_insert] = root_index[i];
+                root_index[i] = -1;
+            }
+            ptr_insert++;
+        }
     }
 }
 
@@ -239,15 +257,21 @@ void getClusteredNodes(struct Node* output, int* root_index, int num_hits, int n
     }
 }
 
-void sortByLayer(struct Node* input, int* layer_begin_idx, int* layer_cnt, int num_layers, int num_clusters) {
-    for (int i = 0; i < num_clusters; i++) {
+void resetIntArray(int* input, int n, int val) {
+    for (int i = 0; i < n; i++) {
+        input[i] = val;
+    }
+}
+
+void sortByLayer(struct Node* input, int* layer_begin_idx, int* layer_cnt, int num_layers, int n) {
+    for (int i = 0; i < n; i++) {
         layer_cnt[input[i].layer_id]++;
     }
 
     int layer_iter[num_layers];
     layer_iter[0] = 0;
     layer_begin_idx[0] = 0;
-    layer_begin_idx[num_layers] = num_clusters;
+    layer_begin_idx[num_layers] = n;
     for (int i = 0; i < num_layers; i++) {
         if (i > 0)
             layer_begin_idx[i] = layer_begin_idx[i-1] + layer_cnt[i-1];
@@ -259,20 +283,41 @@ void sortByLayer(struct Node* input, int* layer_begin_idx, int* layer_cnt, int n
             layer_iter[i]++;
         }
     }
+
+    // printNodeArray(input, n);
+
     // printf("\n");
-    // printIntArray(layer_iter, num_layers);
+    // printIntArray(layer_cnt, num_layers);
+    
     // printf("\n");
     // printIntArray(layer_begin_idx, num_layers + 1);
 
     for (int i = 0; i < num_layers; i++) {
+        // printf("\nLayer %d: %d -> %d", i, layer_iter[i], layer_begin_idx[i + 1]);
+        
+        // printf("\n");
+        // printIntArray(layer_iter, num_layers);
         for (int j = layer_iter[i]; j < layer_begin_idx[i + 1]; j++) {
-            // printf("\nNode %d at layer %d: ", j, input[j].layer_id);
+            
             while (input[j].layer_id != i) {
+                int toLayer = input[j].layer_id;
+                int toIndex = layer_iter[input[j].layer_id];
                 // printf("\nswap %d %d", j, layer_iter[input[j].layer_id]);
                 swapNode(input, j, layer_iter[input[j].layer_id]++);
+
+                for (int k = layer_iter[toLayer]; k < layer_begin_idx[toLayer+1]; k++) {
+                    // printf("\nCheck %d on %d", k, toLayer);
+                    if (input[k].layer_id != toLayer)
+                        break;
+                    layer_iter[toLayer]++;
+                }
             }
+            // printf("\nNode %d passed", j);
         }
     }
+    // printf("\nDone.");
+    // printf("\nnum_sluster: %d", n);
+    // printNodeArray(input, n);
 }
 
 double getDphi(double phi_0, double phi_1) {
@@ -334,14 +379,28 @@ void featureScale(struct Node* input, int n) {
     }
 }
 
-void compare(int* expected, int* marked) {
+void compare(int* expected, int* marked, int n) {
+    
+    printf("\n");
+    printIntArray(marked, n);
+    printf("\n");
+    printIntArray(expected, n);
     int i = 0;
-    for (i; i < num_hits; i++) {
+    for (i; i < n; i++) {
         if (expected[i] != marked[i])
-            printf("\nProblem Exist!");
+            printf("\n Problem Exist!");
     }
     // if (i == num_hits)
     //     printf("\nNo Problem!");
+}
+
+int getNumClusters(int* input, int n){
+    int res = 0;
+    for (int i = 0; i < n; i++, res++) {
+        if (input[i] == -1)
+            break;
+    }
+    return res;
 }
 
 void getNums(int* addr_nums, string s, string delimiter) {
@@ -516,29 +575,39 @@ void loadTest(int idx) {
 
     // printSummary(input, output,marked, num_hits);
 
-    getCluster(output, rootIndex, input, queue, marked, num_hits);
+    sortByLayer(input, layer_begin_idx, layer_cnt, num_layers * 2, num_hits);
+    resetNodeIndex(input, num_hits);
+    
+    // printNodeArray(input, num_hits);
+    // getCluster(output, rootIndex, input, queue, marked, 0, num_hits);
+    for (int i = 0; i < num_layers * 2; i++) {
+        getCluster(output, rootIndex, input, queue, marked, layer_begin_idx[i], layer_begin_idx[i+1]);
+    }
+
+    mergeClusters(output, rootIndex, num_hits);
+    
     // printf("\nCluster ID:");
     // printNodeArray(output, num_hits);
-    // printIntArray(marked, num_hits);
     // printf("\n");
     // printIntArray(rootIndex, num_hits);
-    
-    compare(expected, marked);
+    // compare(expected, marked, num_hits);
 
-    int num_clusters = 0;
-    for (int i = 0; i < num_hits; i++, num_clusters++) {
-        if (rootIndex[i] == -1)
-            break;
-    }
+    int num_clusters = getNumClusters(rootIndex, num_hits);
     // printf("\nNumber of clusters: %d", num_clusters);
     
-    // printNodeArray(output, num_hits);
     getClusteredNodes(output, rootIndex, num_hits, num_layers*2);
     // printNodeArray(output, num_clusters);
 
+    resetIntArray(layer_cnt, num_layers*2, 0);
+    resetIntArray(layer_begin_idx, num_layers*2, -1);
     sortByLayer(output, layer_begin_idx, layer_cnt, num_layers*2, num_clusters);
-    resetNodeIndex(output, num_clusters);
 
+    // printf("\n--------------------\n");
+    // printNodeArray(output, num_clusters);
+
+    // resetNodeIndex(output, num_clusters);
+
+    // printf("\n--------------------\n");
     // printNodeArray(output, num_clusters);
     // printf("\n");
     // printIntArray(layer_begin_idx, num_layers*2+1);
@@ -548,9 +617,9 @@ void loadTest(int idx) {
     if (abs(num_edge_pairs - expected_num_edge_pairs) > 2)
         printf("\nCheck Event %d: %d v.s. %d", idx, num_edge_pairs, expected_num_edge_pairs);
 
-    // Add number of nodes
+    // // Add number of nodes
     featureScale(output, num_clusters);
-    // printNodesWithSelectedFeatures(output, num_clusters);
+    // // printNodesWithSelectedFeatures(output, num_clusters);
 }
 
 int main ()
