@@ -10,7 +10,7 @@ Parallelism for get clusters via partitioned of layers
 | Get Queue | O(# neighbour nodes) | O(n) | True |
 | Get Cluster | O(\|E\|) | O(n) | False |
 | Get Cluster -- Sort Input by Layer | O(n) | O(n_l) * O(l) | False |
-| Get Cluster -- Get Cluster by Layer| O(\|E_l\|) | O(n_l) * O(l) | False |
+| Get Cluster -- Get Cluster by Layer| O(\|E_l\|) | O(n_l) * O(l) | True |
 | Get Cluster -- Merge Clusters | O(n) | O(m) | False |
 | Get Clustered Nodes | O(n) | O(m) | False |
 | Get Sorted Clustered Nodes | O(m) | O(m) | False |
